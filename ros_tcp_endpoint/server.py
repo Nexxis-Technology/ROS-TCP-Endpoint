@@ -48,7 +48,7 @@ class TcpServer(Node):
         """
         super().__init__(node_name)
 
-        self.declare_parameter("ROS_IP", "0.0.0.0")
+        self.declare_parameter("ROS_IP", "127.0.0.1")
         self.declare_parameter("ROS_TCP_PORT", 10000)
 
         if tcp_ip:
@@ -218,6 +218,21 @@ class SysCommands:
             self.tcp_server.executor.add_node(new_subscriber)
 
         self.tcp_server.loginfo("RegisterSubscriber({}, {}) OK".format(topic, message_class))
+
+    def remove_subscriber(self, topic):
+        if topic == "":
+            self.tcp_server.send_unity_error(
+                "Can't unsubscribe to a blank topic name! SysCommand.remove_subscriber({}, {})".format(
+                    topic
+                )
+            )
+            return
+
+        old_node = self.tcp_server.subscribers_table.get(topic)
+        if old_node is not None:
+            self.tcp_server.unregister_node(old_node)
+
+        self.tcp_server.loginfo("remove_subscriber({}) OK".format(topic))    
 
     def publish(self, topic, message_name, queue_size=10, latch=False):
         if topic == "":
