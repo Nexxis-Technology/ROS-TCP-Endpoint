@@ -7,7 +7,7 @@ from ros_tcp_endpoint import TcpServer
 
 def main(args=None):
     rclpy.init(args=args)
-    tcp_server = TcpServer("UnityEndpoint")
+    tcp_server = TcpServer("unity_endpoint_node")
 
     tcp_server.start()
 
