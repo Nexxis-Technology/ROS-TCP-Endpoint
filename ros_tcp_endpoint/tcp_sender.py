@@ -185,8 +185,9 @@ class UnityTcpSender:
                     # I'd like to just wait on the queue, but we also need to check occasionally for the connection being closed
                     # (otherwise the thread never terminates.)
                     continue
-
-                # print("Sender {} sending an item".format(tid))
+                
+                print("SENDER TIME: " + str(time.time_ns()))
+                print("Sender {} sending an item".format(tid))
 
                 try:
                     conn.sendall(item)

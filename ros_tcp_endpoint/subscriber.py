@@ -15,6 +15,7 @@
 import rclpy
 import socket
 import re
+import time
 
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
@@ -27,7 +28,7 @@ class RosSubscriber(RosReceiver):
     Class to send messages outside of ROS network
     """
 
-    def __init__(self, topic, message_class, tcp_server, queue_size=10):
+    def __init__(self, topic, message_class, tcp_server, queue_size=20):
         """
 
         Args:
@@ -42,9 +43,10 @@ class RosSubscriber(RosReceiver):
         self.msg = message_class
         self.tcp_server = tcp_server
         self.queue_size = queue_size
+        self.timer_setpoint = self.get_clock().now().nanoseconds
 
         qos_profile = QoSProfile(depth=queue_size)
-        qos_profile.reliability = QoSReliabilityPolicy.BEST_EFFORT
+        qos_profile.reliability = QoSReliabilityPolicy.RELIABLE
 
         # Start Subscriber listener function
         self.subscription = self.create_subscription(
@@ -62,6 +64,10 @@ class RosSubscriber(RosReceiver):
             self.msg: The deserialize message
 
         """
+        #self.get_logger().info(str(data.header.stamp.sec) + "."+ str(data.header.stamp.nanosec) +", SEND TIMER ," + str((self.get_clock().now().nanoseconds - self.timer_setpoint)/1000000) + ", HZ ," + str(1000000000/(self.get_clock().now().nanoseconds - self.timer_setpoint)))
+        print("FRAME TIME: " + str(data.header.stamp.sec) + "."+ str(data.header.stamp.nanosec))
+        print("SUB TIME: " + str(time.time_ns()))
+        self.timer_setpoint = self.get_clock().now().nanoseconds
         self.tcp_server.send_unity_message(self.topic, data)
         return self.msg
 
