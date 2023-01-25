@@ -46,7 +46,7 @@ class RosSubscriber(RosReceiver):
         self.timer_setpoint = self.get_clock().now().nanoseconds
 
         qos_profile = QoSProfile(depth=queue_size)
-        qos_profile.reliability = QoSReliabilityPolicy.RELIABLE
+        qos_profile.reliability = QoSReliabilityPolicy.BEST_EFFORT
 
         # Start Subscriber listener function
         self.subscription = self.create_subscription(
