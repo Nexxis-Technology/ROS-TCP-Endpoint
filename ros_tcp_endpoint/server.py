@@ -168,9 +168,9 @@ class TcpServer(Node):
 
     def unregister_node(self, old_node):
         if old_node is not None:
-            old_node.unregister()
             if self.executor is not None:
                 self.executor.remove_node(old_node)
+            old_node.unregister()
 
     def destroy_nodes(self):
         """
@@ -232,7 +232,7 @@ class SysCommands:
         if old_node is not None:
             self.tcp_server.unregister_node(old_node)
 
-        self.tcp_server.loginfo("remove_subscriber({}) OK".format(topic))    
+        self.tcp_server.loginfo("remove_subscriber({}) OK".format(topic))
 
     def publish(self, topic, message_name, queue_size=10, latch=False):
         if topic == "":
