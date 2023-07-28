@@ -54,9 +54,9 @@ class RosService(RosSender):
         message_type = type(self.req)
         message = deserialize_message(data, message_type)
 
-        if not self.cli.service_is_ready():
+        if not self.cli.wait_for_service(10.0):
             self.get_logger().error(
-                "Ignoring service call to {} - service is not ready.".format(self.service_topic)
+                "Ignoring service call to {} - service is not ready and timedout.".format(self.service_topic)
             )
             return None
 
