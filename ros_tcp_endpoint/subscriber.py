@@ -27,7 +27,7 @@ class RosSubscriber(RosReceiver):
     Class to send messages outside of ROS network
     """
 
-    def __init__(self, topic, message_class, tcp_server, queue_size=50):
+    def __init__(self, topic, message_class, tcp_server, queue_size=2):
         """
 
         Args:
@@ -44,6 +44,7 @@ class RosSubscriber(RosReceiver):
         self.queue_size = queue_size
 
         qos_profile = QoSProfile(depth=queue_size)
+        qos_profile.history = QoSHistoryPolicy.KEEP_LAST
         qos_profile.reliability = QoSReliabilityPolicy.RELIABLE
 
         # Start Subscriber listener function
