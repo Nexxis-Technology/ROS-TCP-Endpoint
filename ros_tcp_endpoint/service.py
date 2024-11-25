@@ -14,6 +14,7 @@
 
 import rclpy
 import re
+import std_srvs
 
 from rclpy.serialization import deserialize_message
 
@@ -52,7 +53,16 @@ class RosService(RosSender):
             service response
         """
         message_type = type(self.req)
-        message = deserialize_message(data, message_type)
+
+        """
+        The below workaround handles deserialization issues with empty message type "Trigger.Request".
+        Solution was identified in: https://github.com/Unity-Technologies/Unity-Robotics-Hub/issues/390
+        """
+        message = None
+        if(isinstance(message_type, std_srvs.srv._trigger.Metaclass_Trigger_Request)):
+            message = std_srvs.srv.Trigger.Request()
+        else:
+            message = deserialize_message(data, message_type)
 
         if not self.cli.wait_for_service(10.0):
             self.get_logger().error(
