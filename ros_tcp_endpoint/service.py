@@ -14,9 +14,7 @@
 
 import rclpy
 import re
-import std_srvs
-import std_srvs.srv
-
+from std_srvs.srv import Trigger
 from rclpy.serialization import deserialize_message
 
 from .communication import RosSender
