@@ -14,7 +14,7 @@
 
 import rclpy
 import re
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, _trigger
 from rclpy.serialization import deserialize_message
 
 from .communication import RosSender
@@ -58,8 +58,8 @@ class RosService(RosSender):
         Solution was identified in: https://github.com/Unity-Technologies/Unity-Robotics-Hub/issues/390
         """
         message = None
-        if(isinstance(message_type, std_srvs.srv._trigger.Metaclass_Trigger_Request)):
-            message = std_srvs.srv.Trigger.Request()
+        if(isinstance(message_type, _trigger.Metaclass_Trigger_Request)):
+            message = Trigger.Request()
         else:
             message = deserialize_message(data, message_type)
 
