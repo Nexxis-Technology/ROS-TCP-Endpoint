@@ -14,7 +14,7 @@ def main(args=None):
     tcp_server.setup_executor()
 
     tcp_server.destroy_nodes()
-    rclpy.shutdown()
+    rclpy.try_shutdown()
 
 
 if __name__ == "__main__":
