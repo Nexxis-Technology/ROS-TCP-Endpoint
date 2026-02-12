@@ -43,9 +43,7 @@ class RosSubscriber(RosReceiver):
         self.tcp_server = tcp_server
         self.queue_size = queue_size
 
-        qos_profile = QoSProfile(depth=queue_size)
-        qos_profile.history = QoSHistoryPolicy.KEEP_LAST
-        qos_profile.reliability = QoSReliabilityPolicy.RELIABLE
+        qos_profile = self.get_matched_qos(topic, queue_size)
 
         # Start Subscriber listener function
         self.subscription = self.create_subscription(
@@ -74,3 +72,27 @@ class RosSubscriber(RosReceiver):
         """
         self.destroy_subscription(self.subscription)
         self.destroy_node()
+
+    def get_matched_qos(self, topic, queue_size):
+        """Match QoS to existing publishers on the topic"""
+        qos_profile = QoSProfile(depth=queue_size)
+        try:
+            pub_info = self.get_publishers_info_by_topic(topic)
+            if pub_info:
+                source_qos = pub_info[0].qos_profile
+                qos_profile.reliability = source_qos.reliability
+                qos_profile.durability = source_qos.durability
+                self.get_logger().info(
+                    f"Matched QoS for {topic}: reliability={source_qos.reliability}, durability={source_qos.durability}"
+                )
+                return qos_profile
+            else:
+                self.get_logger().warn(
+                    f"No publisher found for topic {topic}, using default QoS"
+                )
+        except Exception as e:
+            self.get_logger().warn(
+                f"Failed to match QoS for topic {topic}: {e}, using default QoS"
+            )
+
+        return qos_profile
