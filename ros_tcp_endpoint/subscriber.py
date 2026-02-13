@@ -19,6 +19,8 @@ from rclpy.qos import QoSProfile
 
 from .communication import RosReceiver
 
+QOS_CHECK_TIMERR_PERIOD = 2.0
+
 
 class RosSubscriber(RosReceiver):
     """
@@ -40,8 +42,11 @@ class RosSubscriber(RosReceiver):
         self.msg = message_class
         self.tcp_server = tcp_server
         self.queue_size = queue_size
+        self.check_qos_timer = None
 
         qos_profile = self.get_matched_qos(self.topic, self.queue_size)
+
+        self.current_qos = (qos_profile.reliability, qos_profile.durability)
 
         # Start Subscriber listener function
         self.subscription = self.create_subscription(
@@ -67,6 +72,8 @@ class RosSubscriber(RosReceiver):
         Returns:
 
         """
+        if self.check_qos_timer:
+            self.destroy_timer(self.check_qos_timer)
         self.destroy_subscription(self.subscription)
         self.destroy_node()
 
@@ -87,9 +94,34 @@ class RosSubscriber(RosReceiver):
                 self.get_logger().warn(
                     f"No publisher found for topic {topic}, using default QoS"
                 )
+                if not self.check_qos_timer:
+                    self.check_qos_timer = self.create_timer(
+                        QOS_CHECK_TIMERR_PERIOD, self.check_qos_match
+                    )
         except Exception as e:
             self.get_logger().warn(
                 f"Failed to match QoS for topic {topic}: {e}, using default QoS"
             )
 
         return qos_profile
+
+    def check_qos_match(self):
+        try:
+            pub_info = self.get_publishers_info_by_topic(self.topic)
+            if pub_info:
+                source_qos = pub_info[0].qos_profile
+                new_qos = (source_qos.reliability, source_qos.durability)
+                if self.current_qos != new_qos:
+                    self.get_logger().warn(
+                        f"Publisher QoS changed for {self.topic}, recreating subscription"
+                    )
+                    self.destroy_subscription(self.subscription)
+                    qos_profile = self.get_matched_qos(self.topic, self.queue_size)
+                    self.subscription = self.create_subscription(
+                        self.msg, self.topic, self.send, qos_profile
+                    )
+                    self.current_qos = new_qos
+                self.destroy_timer(self.check_qos_timer)
+                self.check_qos_timer = None
+        except Exception as e:
+            self.get_logger().debug(f"QoS check failed for {self.topic}: {e}")
