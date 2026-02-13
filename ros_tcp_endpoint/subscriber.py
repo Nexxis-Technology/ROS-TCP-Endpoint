@@ -41,7 +41,7 @@ class RosSubscriber(RosReceiver):
         self.tcp_server = tcp_server
         self.queue_size = queue_size
 
-        qos_profile = self.get_matched_qos(topic, queue_size)
+        qos_profile = self.get_matched_qos(self.topic, self.queue_size)
 
         # Start Subscriber listener function
         self.subscription = self.create_subscription(
@@ -70,7 +70,7 @@ class RosSubscriber(RosReceiver):
         self.destroy_subscription(self.subscription)
         self.destroy_node()
 
-    def get_matched_qos(self, topic, queue_size):
+    def get_matched_qos(self, topic: str, queue_size: int) -> QoSProfile:
         """Match QoS to existing publishers on the topic"""
         qos_profile = QoSProfile(depth=queue_size)
         try:
