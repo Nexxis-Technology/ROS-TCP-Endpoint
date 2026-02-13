@@ -94,13 +94,14 @@ class RosSubscriber(RosReceiver):
                 self.get_logger().warn(
                     f"No publisher found for topic {topic}, using default QoS"
                 )
-                if not self.check_qos_timer:
-                    self.check_qos_timer = self.create_timer(
-                        QOS_CHECK_TIMERR_PERIOD, self.check_qos_match
-                    )
         except Exception as e:
             self.get_logger().warn(
                 f"Failed to match QoS for topic {topic}: {e}, using default QoS"
+            )
+
+        if not self.check_qos_timer:
+            self.check_qos_timer = self.create_timer(
+                QOS_CHECK_TIMERR_PERIOD, self.check_qos_match
             )
 
         return qos_profile
