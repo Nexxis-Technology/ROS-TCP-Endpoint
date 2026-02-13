@@ -114,7 +114,7 @@ class RosSubscriber(RosReceiver):
                 new_qos = (source_qos.reliability, source_qos.durability)
                 if self.current_qos != new_qos:
                     self.get_logger().warn(
-                        f"Publisher QoS changed for {self.topic}, recreating subscription"
+                        f"Publisher QoS did not match for {self.topic}, recreating subscription"
                     )
                     self.destroy_subscription(self.subscription)
                     qos_profile = self.get_matched_qos(self.topic, self.queue_size)
