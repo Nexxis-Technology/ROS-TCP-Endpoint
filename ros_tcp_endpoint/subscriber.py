@@ -12,14 +12,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import rclpy
-import socket
+
 import re
 
-from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
 
 from .communication import RosReceiver
+
+QOS_CHECK_TIMERR_PERIOD = 2.0
 
 
 class RosSubscriber(RosReceiver):
@@ -42,16 +42,16 @@ class RosSubscriber(RosReceiver):
         self.msg = message_class
         self.tcp_server = tcp_server
         self.queue_size = queue_size
+        self.check_qos_timer = None
 
-        qos_profile = QoSProfile(depth=queue_size)
-        qos_profile.history = QoSHistoryPolicy.KEEP_LAST
-        qos_profile.reliability = QoSReliabilityPolicy.RELIABLE
+        qos_profile = self.get_matched_qos(self.topic, self.queue_size)
+
+        self.current_qos = (qos_profile.reliability, qos_profile.durability)
 
         # Start Subscriber listener function
         self.subscription = self.create_subscription(
             self.msg, self.topic, self.send, qos_profile  # queue_size
         )
-        self.subscription
 
     def send(self, data):
         """
@@ -72,5 +72,57 @@ class RosSubscriber(RosReceiver):
         Returns:
 
         """
+        if self.check_qos_timer:
+            self.destroy_timer(self.check_qos_timer)
         self.destroy_subscription(self.subscription)
         self.destroy_node()
+
+    def get_matched_qos(self, topic: str, queue_size: int) -> QoSProfile:
+        """Match QoS to existing publishers on the topic"""
+        qos_profile = QoSProfile(depth=queue_size)
+        try:
+            pub_info = self.get_publishers_info_by_topic(topic)
+            if pub_info:
+                source_qos = pub_info[0].qos_profile
+                qos_profile.reliability = source_qos.reliability
+                qos_profile.durability = source_qos.durability
+                self.get_logger().info(
+                    f"Matched QoS for {topic}: reliability={source_qos.reliability}, durability={source_qos.durability}"
+                )
+                return qos_profile
+            else:
+                self.get_logger().warn(
+                    f"No publisher found for topic {topic}, using default QoS"
+                )
+        except Exception as e:
+            self.get_logger().warn(
+                f"Failed to match QoS for topic {topic}: {e}, using default QoS"
+            )
+
+        if not self.check_qos_timer:
+            self.check_qos_timer = self.create_timer(
+                QOS_CHECK_TIMERR_PERIOD, self.check_qos_match
+            )
+
+        return qos_profile
+
+    def check_qos_match(self):
+        try:
+            pub_info = self.get_publishers_info_by_topic(self.topic)
+            if pub_info:
+                source_qos = pub_info[0].qos_profile
+                new_qos = (source_qos.reliability, source_qos.durability)
+                if self.current_qos != new_qos:
+                    self.get_logger().warn(
+                        f"Publisher QoS did not match for {self.topic}, recreating subscription"
+                    )
+                    self.destroy_subscription(self.subscription)
+                    qos_profile = self.get_matched_qos(self.topic, self.queue_size)
+                    self.subscription = self.create_subscription(
+                        self.msg, self.topic, self.send, qos_profile
+                    )
+                    self.current_qos = new_qos
+                self.destroy_timer(self.check_qos_timer)
+                self.check_qos_timer = None
+        except Exception as e:
+            self.get_logger().debug(f"QoS check failed for {self.topic}: {e}")
